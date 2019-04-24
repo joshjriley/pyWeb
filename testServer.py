@@ -4,6 +4,10 @@ import socketserver
 import socket
 import math
 import io
+
+import matplotlib
+matplotlib.use ('Agg')
+
 import matplotlib.pyplot as plt
 
 from easyHTTP import EasyHTTPHandler, EasyHTTPServer, EasyHTTPServerThreaded
@@ -41,7 +45,7 @@ class TestAppHandler (EasyHTTPHandler):
     def getResult(self, req, qstr):
         paramA = self.floatVal(qstr, 'paramA', 1)
         paramB = self.floatVal(qstr, 'paramB', 1)
-        result = {'result': (paramA + paramB) }
+        result = {'result': (paramA * paramB) }
         return self.response(json.dumps(result), self.PlainTextType)
 
     def getImage(self, req, qstr):
@@ -56,8 +60,6 @@ class TestAppHandler (EasyHTTPHandler):
         imgData.seek(0);
         buf = imgData.read()
         return self.response(buf, 'image/png')
-
-       
 
 if __name__ == "__main__":
     import signal

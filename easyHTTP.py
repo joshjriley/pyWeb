@@ -2,12 +2,14 @@
 Easy HTTP Handler
 """
 
-import os
 import cgi
-import sys,threading,datetime,http.server,socketserver
+import sys
+import threading
+import datetime
+import http.server
+import socketserver
 import traceback
 
-import cgi
 try:
     from http import HTTPStatus
 except:
@@ -55,11 +57,15 @@ class EasyHTTPHandler (http.server.SimpleHTTPRequestHandler):
                 self.end_headers ()
                 self.wfile.write (out)
             else:
+                #print ("server", qs)
                 self.serveFile (req, qs)
                 return
         except FileNotFoundError:
+            traceback.print_exc()   
             self.send_error (HTTPStatus.NOT_FOUND)
         except BrokenPipeError:
+            #traceback.print_exc()
+            self.log_message("Broken pipe")
             return
         except Exception as e:
             traceback.print_exc()   
@@ -85,8 +91,12 @@ class EasyHTTPHandler (http.server.SimpleHTTPRequestHandler):
         req = parts.path[1:]
         self.handleRequest (req, qs)
 
+    def translate_path (self, p):
+        return p
+
     def serveFile (self, req, qs):
-        self.path = self.DocRoot + "/" + req
+        sfile = req if len(req) > 0 else self.defaultFile
+        self.path = self.DocRoot + "/" + sfile
         f = self.send_head()
         if f:
             try:
@@ -107,7 +117,7 @@ class EasyHTTPHandler (http.server.SimpleHTTPRequestHandler):
             return defValue
 
     def intVal (self, qstr, name, defValue=0):
-        return int(self.getDefValue(qstr, name, str(defValue)))
+        return int(self.floatVal(qstr, name, defValue))
 
     def boolVal (self, qstr, name):
         return 1 if qstr[name][0] == 'true' else 0
@@ -124,7 +134,7 @@ class EasyHTTPHandler (http.server.SimpleHTTPRequestHandler):
         try:
             if req == "" :
                 return False
-            req = req.split('/')[-1]
+            req = req.replace('/', '_')
             #print (req, qstr)
             fn = getattr(self, req)
             if fn:
@@ -145,17 +155,23 @@ class EasyHTTPServerThreaded (ThreadedTCPServer):
             traceback.print_exc()
             print ("HTTPD terminated")
 
-class EasyHTTPServer (socketserver.ForkingTCPServer):
-    def __init__(self, ipnp, hdl):
-        super(EasyHTTPServer, self).__init__(ipnp, hdl)
-
-    def run4ever (self):
-        try:
-            self.serve_forever()
-            self.shutdown()
-        except Exception as e:
-            traceback.print_exc()
-            print ("HTTPD terminated")
+try :
+    class EasyHTTPServer (socketserver.ForkingTCPServer):
+        def __init__(self, ipnp, hdl):
+            super(EasyHTTPServer, self).__init__(ipnp, hdl)
+    
+        def run4ever (self):
+            try:
+                self.serve_forever()
+                self.shutdown()
+            except Exception as e:
+                traceback.print_exc()
+                print ("HTTPD terminated")
+except:
+    class EasyHTTPServer ():
+        def __init__ (self, *kwd):
+            raise Exception ("EasyHTTPServer is not available on Windows")
+    pass
 
 ThreadedTCPServer.allow_reuse_address = True
 socketserver.TCPServer.allow_reuse_address = True
